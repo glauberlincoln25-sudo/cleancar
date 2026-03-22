@@ -23,15 +23,7 @@ function toast(msg, type='ok') {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
-  firebase.initializeApp({
-    apiKey:"AIzaSyBV4M48o18LRGev4ii-EJ27PuXvyiFyAtA",
-    authDomain:"clean-car-2bffd.firebaseapp.com",
-    databaseURL:"https://clean-car-2bffd-default-rtdb.firebaseio.com",
-    projectId:"clean-car-2bffd",
-    storageBucket:"clean-car-2bffd.firebasestorage.app",
-    messagingSenderId:"435949152194",
-    appId:"1:435949152194:web:379b296af9864008d7185b"
-  });
+  firebase.initializeApp({apiKey:"AIzaSyBV4M48o18LRGev4ii-EJ27PuXvyiFyAtA",authDomain:"clean-car-2bffd.firebaseapp.com",databaseURL:"https://clean-car-2bffd-default-rtdb.firebaseio.com",projectId:"clean-car-2bffd",storageBucket:"clean-car-2bffd.firebasestorage.app",messagingSenderId:"435949152194",appId:"1:435949152194:web:379b296af9864008d7185b"});
   var _fbDB=firebase.database(),_fbAuth=firebase.auth();
   window._db=_fbDB;window._auth=_fbAuth;window._firebaseReady=false;
   window._fbRef=function(db,p){return db.ref(p);};
@@ -45,10 +37,9 @@ function toast(msg, type='ok') {
     var e=document.getElementById('loginEmail').value.trim();
     var p=document.getElementById('loginPass').value;
     if(!e||!p)return toast('Preencha e-mail e senha','err');
-    var btn=document.getElementById('btnLogin');
-    btn.disabled=true;btn.textContent='Aguarde...';
+    var btn=document.getElementById('btnLogin');btn.disabled=true;btn.textContent='Aguarde...';
     try{await _fbAuth.signInWithEmailAndPassword(e,p);}
-    catch(err){toast('E-mail ou senha incorretos','err');btn.disabled=false;btn.textContent='▶ Entrar';}
+    catch(err){toast('E-mail ou senha incorretos','err');btn.disabled=false;btn.textContent='&#9658; Entrar';}
   };
   _fbAuth.onAuthStateChanged(function(user){
     if(user){
@@ -64,12 +55,12 @@ function toast(msg, type='ok') {
       window._currentAuthUser=null;window._firebaseReady=false;
       document.getElementById('loginScreen').style.display='flex';
       var btn=document.getElementById('btnLogin');
-      if(btn){btn.disabled=false;btn.textContent='▶ Entrar';}
+      if(btn){btn.disabled=false;btn.textContent='&#9658; Entrar';}
     }
   });
   window.logout=function(){
     if(!confirm('Deseja sair?'))return;
-    if(typeof auditLog==='function')auditLog('logout','Sessão encerrada');
+    if(typeof auditLog==='function')auditLog('logout','Sessao encerrada');
     _fbAuth.signOut().then(function(){location.reload();});
   };
 </script>
@@ -411,6 +402,7 @@ body.light .badge{opacity:.9}
   </div>
 </div>
 
+<div id="pwaInstallBanner"><span style="font-size:28px">&#128241;</span><div style="flex:1"><strong style="color:var(--accent);display:block">Instalar Clean Car</strong><span style="font-size:12px;color:var(--muted2)">Adicione a tela inicial</span></div><button class="btn btn-primary btn-sm" onclick="instalarPWA()">Instalar</button><button class="btn btn-ghost btn-sm" onclick="document.getElementById('pwaInstallBanner').classList.remove('show')">&#10005;</button></div>
 <!-- BUSCA GLOBAL -->
 <div id="globalSearchOverlay" onclick="if(event.target===this)fecharBuscaGlobal()">
   <div class="gs-box">
@@ -430,7 +422,8 @@ body.light .badge{opacity:.9}
   <div class="mm-item active" onclick="goTo('dashboard');setMobileActive(this)"><span class="ico">⬡</span>Dashboard</div>
   <div class="mm-item" onclick="goTo('agendamento');setMobileActive(this)"><span class="ico">◎</span>Agendar</div>
   <div class="mm-item" onclick="goTo('agenda');setMobileActive(this)"><span class="ico">▦</span>Agenda</div>
-  <div class="mm-item" onclick="goTo('caixa');setMobileActive(this)"><span class="ico">💵</span>Caixa</div>
+
+  <div class="ni" onclick="goTo('agenda-semana')"><span class="ico">&#128197;</span>Visao Semanal</div>  <div class="mm-item" onclick="goTo('caixa');setMobileActive(this)"><span class="ico">💵</span>Caixa</div>
   <div class="mm-item" onclick="goTo('banco');setMobileActive(this)"><span class="ico">◫</span>Clientes</div>
   <div class="mm-item" onclick="document.getElementById('sidebar').style.display=document.getElementById('sidebar').style.display==='block'?'none':'block'"><span class="ico">☰</span>Menu</div>
 </div>
@@ -476,6 +469,7 @@ body.light .badge{opacity:.9}
     <div id="dashMeta" style="margin-bottom:16px"></div>
     <!-- ALERTAS -->
     <div id="dashAlertas" style="margin-bottom:20px"></div>
+    <div id="dashComparativo" style="margin-bottom:16px"></div>
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:20px">
         <div style="font-family:var(--font-d);font-size:16px;letter-spacing:2px;margin-bottom:14px">RECEITA POR SERVIÇO</div>
@@ -1216,11 +1210,18 @@ body.light .badge{opacity:.9}
           </div>
           <!-- Cores -->
           <div style="margin-bottom:16px">
+            <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">TEMAS PRONTOS</div>
+            <div style="display:flex;gap:8px;margin-bottom:12px"><div class="theme-preview" id="tema_dark" onclick="aplicarTema('dark')" style="background:linear-gradient(135deg,#07080f,#4fc3f7)" title="Dark Pro"></div><div class="theme-preview" id="tema_blue" onclick="aplicarTema('blue')" style="background:linear-gradient(135deg,#0a0e1a,#2196F3)" title="Blue"></div><div class="theme-preview" id="tema_green" onclick="aplicarTema('green')" style="background:linear-gradient(135deg,#071a0a,#4CAF50)" title="Green"></div><div class="theme-preview" id="tema_purple" onclick="aplicarTema('purple')" style="background:linear-gradient(135deg,#0f0a1a,#9C27B0)" title="Purple"></div><div class="theme-preview" id="tema_light-clean" onclick="aplicarTema('light-clean')" style="background:linear-gradient(135deg,#f5f7fa,#1976D2)" title="Light"></div></div>
+            <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">FONTE</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px"><div class="font-option" id="font_modern" onclick="aplicarFonte('modern')"><div style="font-weight:700;font-size:16px">Aa</div><div style="font-size:10px;color:var(--muted2)">Moderna</div></div><div class="font-option" id="font_bold" onclick="aplicarFonte('bold')"><div style="font-weight:900;font-size:16px">Aa</div><div style="font-size:10px;color:var(--muted2)">Bold</div></div><div class="font-option" id="font_tech" onclick="aplicarFonte('tech')"><div style="font-family:monospace;font-weight:700;font-size:16px">Aa</div><div style="font-size:10px;color:var(--muted2)">Tech</div></div><div class="font-option" id="font_classic" onclick="aplicarFonte('classic')"><div style="font-family:serif;font-weight:700;font-size:16px">Aa</div><div style="font-size:10px;color:var(--muted2)">Classic</div></div></div>
+            <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">NOME DO SISTEMA</div>
+            <div class="fg" style="margin-bottom:12px"><input id="empSistNome" placeholder="Ex: CLEAN CAR" oninput="previewNomeSist(this.value)"></div>
             <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:8px">COR PRINCIPAL (ACCENT)</div>
+
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <input type="color" id="empCorAccent" value="#4fc3f7" oninput="previewCor('accent',this.value)" style="width:40px;height:36px;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:none">
               <div id="coresAccentGrid" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-              <script>['#4fc3f7','#69f0ae','#ff7043','#ffd740','#ce93d8','#ef5350','#26c6da','#66bb6a'].forEach(function(c){var d=document.createElement('div');d.style.cssText='width:26px;height:26px;border-radius:6px;background:'+c+';cursor:pointer;border:2px solid transparent';d.onclick=function(){document.getElementById('empCorAccent').value=c;previewCor('accent',c);};d.onmouseover=function(){this.style.borderColor='#fff';};d.onmouseout=function(){this.style.borderColor='transparent';};document.getElementById('coresAccentGrid').appendChild(d);});</script>
+              <script>['#4fc3f7','#69f0ae','#ff7043','#ffd740','#ce93d8','#ef5350','#26c6da','#66bb6a'].forEach(function(cor){var d=document.createElement('div');d.style.cssText='width:26px;height:26px;border-radius:6px;background:'+cor+';cursor:pointer;border:2px solid transparent';d.onclick=function(){document.getElementById('empCorAccent').value=cor;previewCor('accent',cor);};d.onmouseover=function(){this.style.borderColor='#fff';};d.onmouseout=function(){this.style.borderColor='transparent';};document.getElementById('coresAccentGrid').appendChild(d);});</script>
             </div>
           </div>
           <div style="margin-bottom:16px">
@@ -1332,7 +1333,7 @@ body.light .badge{opacity:.9}
         <div style="display:flex;flex-direction:column;gap:10px">
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
             <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px">PASSO 1 — Restringir API Key por domínio (Google Cloud)</div>
-            <div style="font-size:12px;color:var(--muted2);line-height:1.6;margin-bottom:8px">Google Cloud Console → Credenciais → sua API Key → Restrições de aplicativo → Referenciadores HTTP → adicione <strong style="color:var(--accent)">snazzy-moonbeam-7901db.netlify.app/*</strong></div>
+            <div style="font-size:12px;color:var(--muted2);line-height:1.6;margin-bottom:8px">Google Cloud Console → Credenciais → sua API Key → Restrições de aplicativo → Referenciadores HTTP → adicione <strong style="color:var(--accent)">glauberlincoln25-sudo.github.io/cleancar/*</strong></div>
             <button class="btn btn-ghost btn-sm" onclick="window.open('https://console.cloud.google.com/apis/credentials','_blank')">↗ Google Cloud Console</button>
           </div>
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
@@ -1343,7 +1344,7 @@ body.light .badge{opacity:.9}
           </div>
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
             <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px">PASSO 3 — Autorizar somente seu domínio no Auth</div>
-            <div style="font-size:12px;color:var(--muted2);line-height:1.6;margin-bottom:8px">Firebase → Authentication → Settings → Authorized domains → mantenha apenas <strong style="color:var(--accent)">snazzy-moonbeam-7901db.netlify.app</strong> e localhost.</div>
+            <div style="font-size:12px;color:var(--muted2);line-height:1.6;margin-bottom:8px">Firebase → Authentication → Settings → Authorized domains → mantenha apenas <strong style="color:var(--accent)">glauberlincoln25-sudo.github.io/cleancar</strong> e localhost.</div>
             <button class="btn btn-ghost btn-sm" onclick="window.open('https://console.firebase.google.com/project/clean-car-2bffd/authentication/settings','_blank')">↗ Auth Settings</button>
           </div>
         </div>
@@ -1356,7 +1357,7 @@ body.light .badge{opacity:.9}
             <div style="width:40px;height:40px;border-radius:10px;background:rgba(0,194,203,.15);display:flex;align-items:center;justify-content:center;font-size:22px">🌐</div>
             <div>
               <div style="font-weight:600;font-size:15px">Netlify — Hospedagem</div>
-              <div style="font-size:12px;color:var(--muted2)">Site: snazzy-moonbeam-7901db.netlify.app</div>
+              <div style="font-size:12px;color:var(--muted2)">Site: glauberlincoln25-sudo.github.io/cleancar</div>
             </div>
           </div>
           <button class="btn btn-outline btn-sm" onclick="showAdminTab('deploy',document.querySelector('#adminTabs .ptab:nth-child(6)'))">🚀 Ir para Deploy</button>
@@ -1425,8 +1426,8 @@ body.light .badge{opacity:.9}
           <div class="admin-card-title">📊 STATUS DO SITE</div>
           <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
             <div class="crow">
-              <div><div style="font-size:13px">Site Netlify</div><div style="font-size:11px;color:var(--muted2)">snazzy-moonbeam-7901db.netlify.app</div></div>
-              <button class="btn btn-ghost btn-sm" onclick="window.open('https://snazzy-moonbeam-7901db.netlify.app','_blank')">↗ Abrir</button>
+              <div><div style="font-size:13px">Site Netlify</div><div style="font-size:11px;color:var(--muted2)">glauberlincoln25-sudo.github.io/cleancar</div></div>
+              <button class="btn btn-ghost btn-sm" onclick="window.open('https://glauberlincoln25-sudo.github.io/cleancar','_blank')">↗ Abrir</button>
             </div>
             <div class="crow">
               <div><div style="font-size:13px">Firebase Console</div><div style="font-size:11px;color:var(--muted2)">Banco de dados e autenticação</div></div>
@@ -1475,6 +1476,8 @@ body.light .badge{opacity:.9}
       </div>
     </div>
 
+    <div id="adminTab-backup" style="display:none"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="admin-card"><div class="admin-card-title">&#128190; BACKUP AUTOMATICO</div><div class="crow" style="margin-bottom:14px"><div><div style="font-size:13px">Backup semanal automatico</div></div><button class="toggle" id="togBackupAuto" onclick="toggleBackupAuto(this)"></button></div><div style="display:flex;flex-direction:column;gap:8px"><button class="btn btn-primary" onclick="fazerBackupManual()">&#128190; Backup Agora</button><button class="btn btn-ghost" onclick="listarBackups()">&#128203; Ver Backups</button><button class="btn btn-ghost" onclick="exportBackup()">&#8595; Exportar JSON</button></div></div><div class="admin-card"><div class="admin-card-title">&#128202; STATUS</div><div style="display:flex;flex-direction:column;gap:8px" id="backupStatsCards"><div class="crow"><span>Clientes</span><button class="btn btn-ghost btn-sm" onclick="contarRegistros('clientes',this)">Contar</button></div><div class="crow"><span>Agendamentos</span><button class="btn btn-ghost btn-sm" onclick="contarRegistros('agendamentos',this)">Contar</button></div><div class="crow"><span>Financeiro</span><button class="btn btn-ghost btn-sm" onclick="contarRegistros('financeiro',this)">Contar</button></div></div><button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="contarTodos()">Contar Todos</button></div></div></div>
+    <div id="adminTab-seguranca" style="display:none"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="admin-card"><div class="admin-card-title">&#128274; CONTROLES</div><div style="display:flex;flex-direction:column;gap:10px"><div class="crow"><div><div style="font-size:13px">Notificacoes push</div></div><button class="btn btn-outline btn-sm" onclick="solicitarPermissaoNotificacao()">Ativar</button></div><div class="crow"><div><div style="font-size:13px;color:var(--red)">Logout de todos</div></div><button class="btn btn-danger btn-sm" onclick="forcarLogoutTodos()">&#9167; Logout</button></div></div><div style="margin-top:14px"><div style="font-size:11px;color:var(--muted2);margin-bottom:8px">ALTERAR SENHA ADM</div><div class="fg" style="margin-bottom:8px"><label>Senha atual</label><input type="password" id="seg_senhaAdm" placeholder="Senha atual"></div><div class="fg" style="margin-bottom:8px"><label>Nova senha</label><input type="password" id="seg_novaSenha" placeholder="Nova senha"></div><button class="btn btn-primary" onclick="alterarSenhaAdm()">&#10003; Alterar</button></div></div><div class="admin-card"><div class="admin-card-title">&#128737; SEGURANCA</div><div style="font-size:12px;color:var(--muted2);line-height:1.9;background:rgba(79,195,247,.06);border:1px solid rgba(79,195,247,.2);border-radius:8px;padding:12px;margin-bottom:12px">&#10003; Regras Firebase auth!=null<br>&#10003; Dominio autorizado<br>&#10003; API Key restringida<br>&#10003; Senha ADM configurada<br>&#10003; Backup ativo</div><div style="display:flex;flex-direction:column;gap:6px"><button class="btn btn-outline" onclick="window.open('https://console.firebase.google.com/project/clean-car-2bffd/database/rules','_blank')">&#8599; Regras Firebase</button><button class="btn btn-outline" onclick="window.open('https://console.firebase.google.com/project/clean-car-2bffd/authentication/settings','_blank')">&#8599; Auth Firebase</button></div></div></div></div>
     <!-- TAB: AUDITORIA -->
     <div id="adminTab-auditoria" style="display:none">
       <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -1909,7 +1912,7 @@ body.light .badge{opacity:.9}
     <!-- GERAL -->
     <div id="manualSec-geral">
       <div class="fsec"><div class="fst">🔐 ACESSO E LOGIN</div>
-        <div class="man-step"><span class="man-n">1</span><div><strong>Acessar o sistema:</strong> Abra <code>snazzy-moonbeam-7901db.netlify.app</code> no navegador.</div></div>
+        <div class="man-step"><span class="man-n">1</span><div><strong>Acessar o sistema:</strong> Abra <code>glauberlincoln25-sudo.github.io/cleancar</code> no navegador.</div></div>
         <div class="man-step"><span class="man-n">2</span><div><strong>Login:</strong> Digite e-mail e senha → clique <strong>▶ Entrar</strong> ou pressione Enter.</div></div>
         <div class="man-step"><span class="man-n">3</span><div><strong>Indicador de conexão:</strong> 🟢 Firebase online · 🔴 offline (dados salvos localmente até reconectar).</div></div>
         <div class="man-step"><span class="man-n">4</span><div><strong>Sair:</strong> Clique em <strong>Sair</strong> no topo direito a qualquer momento.</div></div>
@@ -4133,6 +4136,8 @@ function showAdminTab(tab, el){
   if(el)el.classList.add('active');
   if(tab==='regras')carregarRegras();
   if(tab==='auditoria')renderAuditoria();
+  if(tab==='backup')carregarBackupTab();
+  if(tab==='seguranca')carregarSegurancaTab();
   if(tab==='empresa')carregarEmpresa();
   if(tab==='menu')renderMenuAdmin();
   if(tab==='acesso')renderAcesso();
@@ -5287,12 +5292,7 @@ async function salvarOrdemMenu(){
   toast('✓ Ordem do menu salva!','ok');
 }
 
-function aplicarOrdemMenu(){
-  const sidebar=document.getElementById('sidebar');if(!sidebar)return;
-  // Re-renderizar os itens do menu na nova ordem
-  const cfg_hidden=(window._menuHidden||[]);
-  // Apenas reorganizar visualmente - os items já existem
-}
+function aplicarOrdemMenu(){var sb=document.getElementById('sidebar');if(!sb)return;if(!_menuOrder||!_menuOrder.length)return;var allNi=Array.from(sb.querySelectorAll('.ni'));_menuOrder.forEach(function(id){var ni=allNi.find(function(el){return(el.getAttribute('onclick')||'').indexOf(id)>=0;});if(ni)sb.appendChild(ni);});}
 
 // ════════════════════════════════════════════
 // FIDELIDADE — FIX EXCLUSÃO E INCLUSÃO
@@ -6427,7 +6427,22 @@ async function imprimirOS(agId){
     td{padding:6px 10px;border-bottom:1px solid #eee;font-size:12px}
     .footer{margin-top:20px;font-size:10px;color:#999;text-align:center}
     @media print{button{display:none}}
-  </style></head><body>
+  
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:20px}
+.week-day{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;min-height:80px;cursor:pointer;transition:border-color .2s}
+.week-day:hover{border-color:var(--accent)}.week-day.today{border-color:var(--accent);background:rgba(79,195,247,.05)}
+.week-day-header{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:6px;text-align:center}
+.week-ag{background:rgba(79,195,247,.12);border-radius:4px;padding:3px 6px;font-size:11px;margin-bottom:3px;cursor:pointer;border-left:2px solid var(--accent)}
+.week-ag:hover{background:rgba(79,195,247,.25)}
+.theme-preview{width:40px;height:40px;border-radius:8px;cursor:pointer;border:3px solid transparent;transition:all .2s;position:relative;display:inline-block}
+.theme-preview.active{border-color:var(--text)!important}
+.font-option{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;transition:all .2s;text-align:center}
+.font-option.active,.font-option:hover{border-color:var(--accent);background:rgba(79,195,247,.08)}
+#pwaInstallBanner{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:5000;background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:14px 20px;display:none;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);max-width:360px;width:90vw}
+#pwaInstallBanner.show{display:flex}
+@media(max-width:900px){.week-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.week-grid{grid-template-columns:1fr 1fr}}
+</style></head><body>
   <div class="header">
     <div>
       <div class="logo">CLEAN <span>CAR</span></div>
@@ -7140,6 +7155,164 @@ async function carregarConfigEvo(){ return null; }
 async function salvarConfigEvo(){ toast('Evolution API removida deste sistema.','info'); }
 async function gerarQRCodeEvo(){ toast('Evolution API removida deste sistema.','info'); }
 async function salvarIntegracaoEvo(){ toast('Evolution API removida deste sistema.','info'); }
+
+
+// ===== TEMAS =====
+var TEMAS={dark:{accent:'#4fc3f7',accent2:'#ff7043',bg:'#07080f',surface:'#0f1018',surface2:'#161820',text:'#e8eaf6',green:'#69f0ae',red:'#ff5252',border:'#252738'},blue:{accent:'#2196F3',accent2:'#FF5722',bg:'#0a0e1a',surface:'#0f1526',surface2:'#162030',text:'#e8eaf6',green:'#4CAF50',red:'#f44336',border:'#1a2540'},green:{accent:'#4CAF50',accent2:'#FF9800',bg:'#071a0a',surface:'#0f1f0f',surface2:'#162616',text:'#e8eaf6',green:'#69f0ae',red:'#ff5252',border:'#1a3020'},purple:{accent:'#9C27B0',accent2:'#FF4081',bg:'#0f0a1a',surface:'#180f26',surface2:'#221630',text:'#e8eaf6',green:'#69f0ae',red:'#ff5252',border:'#2a1540'},'light-clean':{accent:'#1976D2',accent2:'#E53935',bg:'#f5f7fa',surface:'#ffffff',surface2:'#f0f2f5',text:'#1a1d2e',green:'#2E7D32',red:'#C62828',border:'#dde1e9'}};
+window.aplicarTema=function(nome){var t=TEMAS[nome];if(!t)return;var r=document.documentElement.style;r.setProperty('--accent',t.accent);r.setProperty('--accent2',t.accent2);r.setProperty('--bg',t.bg);r.setProperty('--surface',t.surface);r.setProperty('--surface2',t.surface2);r.setProperty('--text',t.text);r.setProperty('--green',t.green);r.setProperty('--red',t.red);r.setProperty('--border',t.border);document.querySelectorAll('.theme-preview').forEach(function(el){el.classList.remove('active');});var tel=document.getElementById('tema_'+nome);if(tel)tel.classList.add('active');window._temaAtivo=nome;var sf=function(id,v){var el=document.getElementById(id);if(el&&v)el.value=v;};sf('empCorAccent',t.accent);sf('empCorAccent2',t.accent2);toast('Tema aplicado!','ok');};
+// ===== FONTES =====
+window.aplicarFonte=function(nome){var f={modern:{b:'DM Sans,sans-serif',d:'Bebas Neue,sans-serif',m:'JetBrains Mono,monospace'},bold:{b:'DM Sans,sans-serif',d:'Impact,sans-serif',m:'JetBrains Mono,monospace'},tech:{b:'JetBrains Mono,monospace',d:'JetBrains Mono,monospace',m:'JetBrains Mono,monospace'},classic:{b:'Georgia,serif',d:'Georgia,serif',m:'Courier New,monospace'}};var fnt=f[nome];if(!fnt)return;var r=document.documentElement.style;r.setProperty('--font-b',fnt.b);r.setProperty('--font-d',fnt.d);r.setProperty('--font-m',fnt.m);document.querySelectorAll('.font-option').forEach(function(el){el.classList.remove('active');});var fel=document.getElementById('font_'+nome);if(fel)fel.classList.add('active');window._fonteAtiva=nome;toast('Fonte alterada!','ok');};
+previewCor=function(tipo,valor){var m={accent:'--accent',accent2:'--accent2',green:'--green',bg:'--bg'};if(m[tipo])document.documentElement.style.setProperty(m[tipo],valor);};
+window.previewFontSize=function(v){document.body.style.fontSize=v+'px';var el=document.getElementById('fontSizeLabel');if(el)el.textContent=v+'px';};
+window.previewBorderRadius=function(v){document.documentElement.style.setProperty('--r2',v+'px');var el=document.getElementById('borderRadiusLabel');if(el)el.textContent=v+'px';};
+window.previewNomeSist=function(v){var logo=document.querySelector('.tb-logo');if(logo&&v)logo.textContent=v;};
+// ===== APARENCIA =====
+var _origSalvAp=salvarAparencia;
+salvarAparencia=async function(){var g=function(id){var el=document.getElementById(id);return el?el.value:'';};var ap={accent:g('empCorAccent')||'#4fc3f7',accent2:g('empCorAccent2')||'#ff7043',fontSize:g('empFontSize')||'14',borderRadius:g('empBorderRadius')||'14',sistNome:g('empSistNome')||'',tema:window._temaAtivo||'dark',fonte:window._fonteAtiva||'modern',logo:window._logoBase64||null,salvoEm:new Date().toISOString()};await dbSet('aparencia',ap);aplicarAparencia(ap);await auditLog('config','Aparencia salva');toast('Aparencia salva!','ok');};
+var _origAplicAp=aplicarAparencia;
+aplicarAparencia=function(ap){if(!ap)return;var r=document.documentElement.style;if(ap.accent)r.setProperty('--accent',ap.accent);if(ap.accent2)r.setProperty('--accent2',ap.accent2);if(ap.fontSize){document.body.style.fontSize=ap.fontSize+'px';var fs=document.getElementById('empFontSize');if(fs)fs.value=ap.fontSize;}if(ap.borderRadius){r.setProperty('--r2',ap.borderRadius+'px');var br=document.getElementById('empBorderRadius');if(br)br.value=ap.borderRadius;}if(ap.tema)setTimeout(function(){aplicarTema(ap.tema);},100);if(ap.fonte)setTimeout(function(){aplicarFonte(ap.fonte);},200);if(ap.sistNome)previewNomeSist(ap.sistNome);if(ap.logo){var p=document.getElementById('empLogoPreview');if(p)p.innerHTML='<img src="'+ap.logo+'" style="width:60px;height:60px;object-fit:contain">';var logo=document.querySelector('.tb-logo');if(logo)logo.innerHTML='<img src="'+ap.logo+'" style="height:32px;object-fit:contain;margin-right:6px">';window._logoBase64=ap.logo;}var sf=function(id,v){var el=document.getElementById(id);if(el&&v)el.value=v;};sf('empCorAccent',ap.accent);sf('empCorAccent2',ap.accent2);sf('empSistNome',ap.sistNome||'');};
+var _origCarrAp=carregarAparencia;
+carregarAparencia=async function(){var ap=await dbGet('aparencia')||{};aplicarAparencia(ap);};
+window.exportarAparencia=async function(){var ap=await dbGet('aparencia')||{};var a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(ap,null,2));a.download='aparencia.json';a.click();toast('Exportado!','ok');};
+window.importarAparencia=function(){var input=document.createElement('input');input.type='file';input.accept='.json';input.onchange=async function(e){try{var t=await e.target.files[0].text();var ap=JSON.parse(t);await dbSet('aparencia',ap);aplicarAparencia(ap);toast('Importado!','ok');}catch(err){toast('Erro: '+err.message,'err');}};input.click();};
+// ===== PWA =====
+var _pwaPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();_pwaPrompt=e;setTimeout(function(){var b=document.getElementById('pwaInstallBanner');if(b)b.classList.add('show');},4000);});
+window.instalarPWA=async function(){if(!_pwaPrompt)return toast('Use o menu do navegador','info');_pwaPrompt.prompt();var rv=await _pwaPrompt.userChoice;if(rv.outcome==='accepted'){toast('App instalado!','ok');var b=document.getElementById('pwaInstallBanner');if(b)b.classList.remove('show');}_pwaPrompt=null;};
+// ===== AGENDA SEMANAL =====
+var _semanaBase=new Date();_semanaBase.setHours(0,0,0,0);
+function getInicioSemana(d){var dt=new Date(d),dia=dt.getDay(),diff=dt.getDate()-dia+(dia===0?-6:1);dt.setDate(diff);return dt;}
+window.semanaHoje=function(){_semanaBase=new Date();_semanaBase.setHours(0,0,0,0);renderAgendaSemana();};
+window.semanaAnterior=function(){_semanaBase.setDate(_semanaBase.getDate()-7);renderAgendaSemana();};
+window.semanaProxima=function(){_semanaBase.setDate(_semanaBase.getDate()+7);renderAgendaSemana();};
+async function renderAgendaSemana(){
+  var ag=await dbGet('agendamentos')||[];
+  var inicio=getInicioSemana(_semanaBase),dias=[],hoje=today();
+  for(var i=0;i<7;i++){var d=new Date(inicio);d.setDate(inicio.getDate()+i);dias.push(d);}
+  var nomes=['Seg','Ter','Qua','Qui','Sex','Sab','Dom'];
+  var lbl=document.getElementById('semanaLabel');
+  if(lbl)lbl.textContent=dias[0].toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})+' - '+dias[6].toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+  var grid=document.getElementById('weekGrid');if(!grid)return;grid.innerHTML='';
+  dias.forEach(function(d2,idx){
+    var ds=d2.toISOString().split('T')[0];
+    var agDia=ag.filter(function(a){return a.data===ds;}).sort(function(a,b){return a.hora.localeCompare(b.hora);});
+    var div=document.createElement('div');
+    div.className='week-day'+(ds===hoje?' today':'');
+    div.onclick=(function(dsc){return function(){verDiaSemana(dsc);};})(ds);
+    var hdr=document.createElement('div');hdr.className='week-day-header';hdr.textContent=nomes[idx]+' '+d2.getDate();div.appendChild(hdr);
+    agDia.slice(0,4).forEach(function(a){
+      var cor=a.status==='Concluido'?'var(--green)':a.status==='Cancelado'?'var(--red)':'var(--accent)';
+      var adiv=document.createElement('div');adiv.className='week-ag';adiv.style.borderLeftColor=cor;
+      adiv.textContent=a.hora+' '+(a.clienteNome||'').split(' ')[0];
+      adiv.onclick=(function(aid){return function(e){e.stopPropagation();abrirEditA(aid);};})(a.id);
+      div.appendChild(adiv);
+    });
+    if(agDia.length>4){var more=document.createElement('div');more.style.cssText='font-size:10px;color:var(--muted2);text-align:center';more.textContent='+'+(agDia.length-4)+' mais';div.appendChild(more);}
+    grid.appendChild(div);
+  });
+}
+window.verDiaSemana=async function(ds){
+  var ag=await dbGet('agendamentos')||[],sv=await dbGet('servicos')||[];
+  var agDia=ag.filter(function(a){return a.data===ds;}).sort(function(a,b){return a.hora.localeCompare(b.hora);});
+  var lbl=document.getElementById('semDiaLabel');if(lbl)lbl.textContent=ds;
+  var tbody=document.getElementById('semDiaBody');if(!tbody)return;
+  if(!agDia.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Sem agendamentos</td></tr>';return;}
+  tbody.innerHTML=agDia.map(function(a){
+    var aid=String(a.id);
+    return '<tr><td class="tm" style="color:var(--accent)">'+a.hora+'</td>'+
+    '<td><strong>'+(a.clienteNome||'')+'</strong></td>'+
+    '<td>'+(a.nomeServicos||nomeSv(sv,a.servId))+'</td>'+
+    '<td class="tm" style="color:var(--green)">'+fmt(a.valorFinal||a.valor)+'</td>'+
+    '<td>'+sBadge(a.status||'Agendado')+'</td>'+
+    '<td style="display:flex;gap:4px">'+
+    '<button class="btn btn-sm btn-ghost" onclick="abrirEditA(\''+aid+'\')">&#9998;</button>'+
+    '<button class="btn btn-sm btn-success" onclick="mudarStatus(\''+aid+'\',\'Conclu\u00eddo\')">&#10003;</button>'+
+    '</td></tr>';
+  }).join('');
+};
+var _goToOrig2=goTo;
+goTo=function(page){_goToOrig2(page);if(page==='agenda-semana')renderAgendaSemana();};
+// ===== BACKUP =====
+async function verificarBackupAutomatico(){
+  try{var cfg=await dbGet('config')||{};if(!cfg.backupAuto)return;
+    var diff=cfg.ultimoBackup?Math.floor((new Date(today())-new Date(cfg.ultimoBackup))/864e5):999;
+    if(diff>=7)await fazerBackupAutomatico();
+  }catch(e){}
+}
+async function fazerBackupAutomatico(){
+  try{
+    var ch=['clientes','agendamentos','financeiro','fidelidade','estoque','servicos','config','regras','empresa'];
+    var bk={ts:new Date().toISOString(),dados:{}};
+    for(var i=0;i<ch.length;i++)bk.dados[ch[i]]=await dbGet(ch[i]);
+    await dbSet('backups/b_'+today().replace(/-/g,''),bk);
+    var cfg=await dbGet('config')||{};cfg.ultimoBackup=today();await dbSet('config',cfg);
+    toast('Backup realizado!','ok');await auditLog('config','Backup automatico');
+  }catch(e){console.warn('Backup falhou:',e);}
+}
+window.fazerBackupManual=async function(){toast('Fazendo backup...','info');await fazerBackupAutomatico();};
+window.listarBackups=async function(){
+  var bk=await dbGet('backups')||{};
+  var arr=Object.entries(bk).sort(function(a,b){return b[0].localeCompare(a[0]);});
+  if(!arr.length)return toast('Nenhum backup encontrado','info');
+  alert('BACKUPS SALVOS:\n\n'+arr.slice(0,10).map(function(x){return x[0]+' - '+new Date(x[1].ts).toLocaleString('pt-BR');}).join('\n'));
+};
+window.toggleBackupAuto=async function(btn){
+  btn.classList.toggle('on');var ativo=btn.classList.contains('on');
+  var cfg=await dbGet('config')||{};cfg.backupAuto=ativo;await dbSet('config',cfg);
+  toast(ativo?'Backup automatico ativado!':'Backup desativado',ativo?'ok':'warn');
+};
+// ===== COMPARATIVO MENSAL =====
+async function renderComparativoMensal(){
+  try{
+    var fin=await dbGet('financeiro')||[];var h=new Date();
+    var mA=h.toISOString().slice(0,7);
+    var mP=new Date(h.getFullYear(),h.getMonth()-1,1).toISOString().slice(0,7);
+    var soma=function(m){return fin.filter(function(f){return f.tipo==='entrada'&&(f.data||'').startsWith(m);}).reduce(function(s,f){return s+Number(f.valor||0);},0);};
+    var rA=soma(mA),rP=soma(mP),diff=rA-rP;
+    var pct=rP>0?Math.round((diff/rP)*100):0;
+    var el=document.getElementById('dashComparativo');if(!el)return;
+    el.innerHTML='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">'+
+    '<div><div style="font-size:10px;letter-spacing:1px;color:var(--muted2)">COMPARATIVO MENSAL</div>'+
+    '<div style="font-family:var(--font-d);font-size:22px;color:var(--accent)">'+fmt(rA)+'</div>'+
+    '<div style="font-size:11px;color:var(--muted2)">Mes atual</div></div>'+
+    '<div style="text-align:right"><div style="font-size:10px;color:var(--muted2)">vs mes anterior ('+fmt(rP)+')</div>'+
+    '<div style="font-size:14px;'+(diff>=0?'color:var(--green)':'color:var(--red)')+'">'+
+    (diff>=0?'\u2191 +':'\u2193 ')+fmt(Math.abs(diff))+' ('+(pct>=0?'+':'')+pct+'%)</div></div></div>';
+  }catch(e){}
+}
+var _rdOrig=renderDash;
+renderDash=async function(){await _rdOrig();await renderComparativoMensal();};
+// ===== NOTIFICACOES =====
+window.solicitarPermissaoNotificacao=async function(){
+  if(!('Notification' in window))return toast('Nao suportado pelo navegador','warn');
+  var p=await Notification.requestPermission();
+  if(p==='granted'){toast('Notificacoes ativadas!','ok');new Notification('Clean Car',{body:'Notificacoes ativas!'});}
+  else toast('Permissao negada pelo usuario','err');
+};
+// ===== ABAS ADMIN =====
+async function carregarBackupTab(){var cfg=await dbGet('config')||{};var tog=document.getElementById('togBackupAuto');if(tog)tog.className='toggle'+(cfg.backupAuto?' on':'');}
+async function carregarSegurancaTab(){var r=await dbGet('regras')||{};var el=document.getElementById('seg_senhaAdm');if(el)el.value=r.senhaAdm||'';}
+window.contarRegistros=async function(chave,btn){var d=await dbGet(chave)||[];var cnt=Array.isArray(d)?d.length:Object.keys(d).length;btn.textContent=cnt+' registros';btn.style.color='var(--green)';};
+window.contarTodos=async function(){var ch=['clientes','agendamentos','financeiro','estoque'];var t=[];for(var i=0;i<ch.length;i++){var d=await dbGet(ch[i])||[];t.push(ch[i]+': '+(Array.isArray(d)?d.length:Object.keys(d).length));}toast(t.join(' | '),'info');};
+window.alterarSenhaAdm=async function(){
+  var at=document.getElementById('seg_senhaAdm')?.value;
+  var nv=document.getElementById('seg_novaSenha')?.value;
+  if(!nv||nv.length<4)return toast('Nova senha: minimo 4 caracteres!','err');
+  var r=await dbGet('regras')||{};
+  if(r.senhaAdm&&r.senhaAdm!==at)return toast('Senha atual incorreta!','err');
+  r.senhaAdm=nv;await dbSet('regras',r);
+  await auditLog('config','Senha ADM alterada');
+  var el=document.getElementById('seg_novaSenha');if(el)el.value='';
+  toast('Senha ADM alterada com sucesso!','ok');
+};
+window.forcarLogoutTodos=async function(){
+  if(!confirm('Forcar logout de TODOS os usuarios ativos?'))return;
+  var pr=await dbGet('presence')||{};
+  for(var k of Object.keys(pr)){await dbSet('presence/'+k,Object.assign({},pr[k],{online:false,forcedLogoff:true}));}
+  await auditLog('config','Logout forcado de todos');
+  toast('Todos os usuarios foram desconectados!','warn');
+};
+window.addEventListener('firebaseReady',function(){setTimeout(verificarBackupAutomatico,5000);},{once:true});
 
 </script>
 </body>
