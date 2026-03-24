@@ -84,7 +84,7 @@ function toast(msg, type='ok') {
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);font-size:14px;overflow-x:hidden}
 body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(79,195,247,.06),transparent);pointer-events:none;z-index:0}
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
@@ -366,13 +366,19 @@ body.light .badge{opacity:.9}
   .fgrid.c3{grid-template-columns:1fr 1fr}
   .pgto-grid{grid-template-columns:1fr 1fr}
   .cg4{grid-template-columns:1fr 1fr}
-  #main{padding:12px 10px 80px}
+  #main{padding:12px 10px 80px;max-width:100vw;overflow-x:hidden}
   .card{padding:12px 14px}
   .cv{font-size:22px}
-  .modal{padding:18px}
+  .modal{padding:18px;max-width:98vw;width:98vw!important;box-sizing:border-box}
   th{display:none}.tw table,.tw thead,.tw tbody,.tw tr,.tw td{display:block;width:100%}
   .tw td{padding:6px 12px;border-top:1px solid var(--border)}
   .tw td:first-child{font-weight:600;padding-top:12px}
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fsec{overflow-x:hidden}
+  .fgrid{grid-template-columns:1fr!important}
+  .admin-tabs-row,.ptab{font-size:11px;padding:6px 8px}
+  #waTabs,#adminTabs,#page-manual .ptab{flex-wrap:wrap}
+  button.ptab{flex:1 1 auto;min-width:80px}
 }
 </style>
 </head>
@@ -6128,6 +6134,442 @@ document.addEventListener('DOMContentLoaded', function() {
     cnpjEl.setAttribute('oninput', 'mCNPJ(this)');
   }
 });
+
+// ══════════════════════════════════════════════════
+// FUNÇÕES RESTAURADAS — NAVEGAÇÃO E MOBILE
+// ══════════════════════════════════════════════════
+
+// Toggle menu mobile (botão ☰ no topbar)
+window.toggleMobileMenu = function() {
+  var sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  var isVisible = sidebar.style.display === 'block';
+  sidebar.style.display = isVisible ? 'none' : 'block';
+  sidebar.style.position = 'fixed';
+  sidebar.style.top = '52px';
+  sidebar.style.left = '0';
+  sidebar.style.zIndex = '500';
+  sidebar.style.width = '220px';
+  sidebar.style.height = 'calc(100vh - 52px)';
+};
+
+// Marcar item ativo no menu mobile
+window.setMobileActive = function(el) {
+  document.querySelectorAll('#mobileMenu .mm-item').forEach(function(i){ i.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  // Fechar sidebar mobile se estiver aberto
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar && window.innerWidth <= 900) sidebar.style.display = 'none';
+};
+
+// Fechar sidebar ao clicar em item do sidebar no mobile
+document.querySelectorAll('#sidebar .ni').forEach(function(ni) {
+  ni.addEventListener('click', function() {
+    if (window.innerWidth <= 900) {
+      var sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.style.display = 'none';
+    }
+  });
+});
+
+// Toggle de tema claro/escuro
+window.toggleTheme = function() {
+  document.body.classList.toggle('light');
+  var btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+  localStorage.setItem('cc4_theme', document.body.classList.contains('light') ? 'light' : 'dark');
+};
+// Restaurar tema salvo
+(function() {
+  var savedTheme = localStorage.getItem('cc4_theme');
+  if (savedTheme === 'light') {
+    document.body.classList.add('light');
+    var btn = document.getElementById('themeBtn');
+    if (btn) btn.textContent = '☀️';
+  }
+})();
+
+// Busca global
+window.abrirBuscaGlobal = function() {
+  var overlay = document.getElementById('globalSearchOverlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    setTimeout(function() { var inp = document.getElementById('gsInput'); if (inp) inp.focus(); }, 100);
+  }
+};
+window.fecharBuscaGlobal = function() {
+  var overlay = document.getElementById('globalSearchOverlay');
+  if (overlay) overlay.style.display = 'none';
+  var inp = document.getElementById('gsInput');
+  if (inp) inp.value = '';
+};
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); window.abrirBuscaGlobal(); }
+  if (e.key === 'Escape') { window.fecharBuscaGlobal(); fecharM && fecharM; }
+});
+
+// Busca global — renderizar resultados
+window.renderBuscaGlobal = async function() {
+  var q = (document.getElementById('gsInput') || {}).value || '';
+  var res = document.getElementById('gsResults');
+  if (!res) return;
+  if (!q || q.length < 2) { res.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:13px">Digite para buscar em todo o sistema...</div>'; return; }
+  var clientes = await dbGet('clientes') || [];
+  var servicos = await dbGet('servicos') || [];
+  var agendamentos = await dbGet('agendamentos') || [];
+  var ql = q.toLowerCase();
+  var hits = [];
+  clientes.forEach(function(c) { if ((c.nome||'').toLowerCase().includes(ql)||(c.cpf||'').includes(ql)||(c.telefone||'').includes(ql)) hits.push({tipo:'Cliente',label:c.nome,sub:c.telefone||c.cpf||'',action:"goTo('banco')"}); });
+  servicos.forEach(function(s) { if ((s.nome||'').toLowerCase().includes(ql)) hits.push({tipo:'Serviço',label:s.nome,sub:fmt(s.preco),action:"goTo('servicos')"}); });
+  agendamentos.forEach(function(a) { if ((a.cliente||'').toLowerCase().includes(ql)||(a.veiculo||'').toLowerCase().includes(ql)) hits.push({tipo:'Agendamento',label:a.cliente,sub:a.data+' — '+a.servico,action:"goTo('agenda')"}); });
+  if (!hits.length) { res.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:13px">Nenhum resultado para "'+q+'"</div>'; return; }
+  res.innerHTML = hits.slice(0,12).map(function(h) {
+    return '<div onclick="'+h.action+';fecharBuscaGlobal()" style="display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background=\'var(--surface2)\'" onmouseout="this.style.background=\'\'">'
+      +'<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:var(--surface3);color:var(--muted2)">'+h.tipo+'</span>'
+      +'<div><div style="font-size:13px">'+h.label+'</div><div style="font-size:11px;color:var(--muted2)">'+h.sub+'</div></div></div>';
+  }).join('');
+};
+window.navBuscaGlobal = function(e) { if (e.key === 'Escape') window.fecharBuscaGlobal(); };
+
+// PWA — instalar
+var _pwaInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); _pwaInstallPrompt = e; var banner = document.getElementById('pwaInstallBanner'); if (banner) banner.classList.add('show'); });
+window.instalarPWA = async function() {
+  if (_pwaInstallPrompt) { _pwaInstallPrompt.prompt(); var r = await _pwaInstallPrompt.userChoice; if (r.outcome === 'accepted') { _pwaInstallPrompt = null; var banner = document.getElementById('pwaInstallBanner'); if (banner) banner.classList.remove('show'); } }
+  else { toast('Use o menu do navegador para instalar: "Adicionar à tela inicial"', 'info'); }
+};
+
+// ══════════════════════════════════════════════════
+// FUNÇÕES RESTAURADAS — ABAS WHATSAPP
+// ══════════════════════════════════════════════════
+
+window.showWATab = function(tab, el) {
+  document.querySelectorAll('[id^="waTab-"]').forEach(function(d){ d.style.display = 'none'; });
+  var target = document.getElementById('waTab-' + tab);
+  if (target) target.style.display = '';
+  document.querySelectorAll('#waTabs .ptab').forEach(function(b){ b.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  if (tab === 'templates') renderTemplatesWA();
+  if (tab === 'historico') renderHistoricoWA();
+  if (tab === 'automacoes') renderAutomacoesWA();
+  if (tab === 'lote') renderLoteWA();
+};
+
+window.renderWhatsApp = async function() {
+  // Verificar status da Evolution API
+  var cfg = await dbGet('evolutionConfig') || {};
+  window._evoConfig = cfg;
+  var dot = document.getElementById('waStatusDot');
+  var lbl = document.getElementById('waStatusLabel');
+  if (cfg && cfg.url) {
+    if (dot) dot.style.background = 'var(--yellow)';
+    if (lbl) lbl.textContent = 'Verificando...';
+    try {
+      var ok = await testarConexaoEvo();
+      if (dot) dot.style.background = ok ? 'var(--green)' : 'var(--red)';
+      if (lbl) lbl.textContent = ok ? '🟢 Conectado' : '🔴 Desconectado';
+    } catch(e) {
+      if (dot) dot.style.background = 'var(--red)';
+      if (lbl) lbl.textContent = '🔴 Erro';
+    }
+  } else {
+    if (dot) dot.style.background = 'var(--border2)';
+    if (lbl) lbl.textContent = 'Não configurado';
+  }
+  // Carregar clientes no select de envio em lote
+  await renderLoteWA();
+  // Garantir aba ativa
+  var activeTab = document.querySelector('#waTabs .ptab.active');
+  if (!activeTab) {
+    var firstTab = document.querySelector('#waTabs .ptab');
+    if (firstTab) { firstTab.classList.add('active'); document.querySelectorAll('[id^="waTab-"]').forEach(function(d,i){ d.style.display = i===0?'':'none'; }); }
+  }
+};
+
+window.renderTemplatesWA = async function() {
+  var templates = await dbGet('waTemplates') || [];
+  var tbody = document.getElementById('waTemplatesBody');
+  if (!tbody) return;
+  if (!templates.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--muted2)">Nenhum template cadastrado</td></tr>'; return; }
+  tbody.innerHTML = templates.map(function(t,i) {
+    return '<tr><td>'+t.nome+'</td><td><span class="badge bg-blue">'+t.categoria+'</span></td>'
+      +'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.mensagem+'</td>'
+      +'<td><button class="btn btn-sm btn-ghost" onclick="editarTemplateWA('+i+')">✎</button> '
+      +'<button class="btn btn-sm btn-danger" onclick="excluirTemplateWA('+i+')">✕</button></td></tr>';
+  }).join('');
+};
+
+window.salvarTemplateWA = async function() {
+  var nome = (document.getElementById('waTplNome')||{}).value || '';
+  var cat = (document.getElementById('waTplCat')||{}).value || '';
+  var msg = (document.getElementById('waTplMsg')||{}).value || '';
+  if (!nome || !msg) return toast('Preencha nome e mensagem!', 'err');
+  var templates = await dbGet('waTemplates') || [];
+  templates.push({ id: Date.now(), nome: nome, categoria: cat, mensagem: msg });
+  await dbSet('waTemplates', templates);
+  toast('Template salvo!', 'ok');
+  if (document.getElementById('waTplNome')) document.getElementById('waTplNome').value = '';
+  if (document.getElementById('waTplMsg')) document.getElementById('waTplMsg').value = '';
+  renderTemplatesWA();
+};
+
+window.excluirTemplateWA = async function(idx) {
+  if (!confirm('Excluir template?')) return;
+  var templates = await dbGet('waTemplates') || [];
+  templates.splice(idx, 1);
+  await dbSet('waTemplates', templates);
+  toast('Removido.', 'info');
+  renderTemplatesWA();
+};
+
+window.editarTemplateWA = async function(idx) {
+  var templates = await dbGet('waTemplates') || [];
+  var t = templates[idx];
+  if (!t) return;
+  if (document.getElementById('waTplNome')) document.getElementById('waTplNome').value = t.nome || '';
+  if (document.getElementById('waTplCat')) document.getElementById('waTplCat').value = t.categoria || '';
+  if (document.getElementById('waTplMsg')) document.getElementById('waTplMsg').value = t.mensagem || '';
+  templates.splice(idx, 1);
+  await dbSet('waTemplates', templates);
+  renderTemplatesWA();
+  toast('Editando template — salve novamente ao terminar.', 'info');
+};
+
+window.inserirVariavelWA = function(v) {
+  var el = document.getElementById('waTplMsg');
+  if (!el) return;
+  var pos = el.selectionStart || el.value.length;
+  el.value = el.value.slice(0, pos) + v + el.value.slice(pos);
+  el.focus();
+  previewTemplateWA();
+};
+
+window.previewTemplateWA = function() {
+  var msg = (document.getElementById('waTplMsg')||{}).value || '';
+  var preview = document.getElementById('waTplPreview');
+  if (!preview) return;
+  var exemplo = { nome:'João Silva', telefone:'(11) 99999-9999', data:'25/12/2025', hora:'10:00', servico:'Lavagem Completa', valor:'R$ 80,00', veiculo:'Corolla', placa:'ABC-1234', empresa:'Clean Car', cidade:'São Paulo', pontos:'150', beneficio:'Desconto 10%' };
+  var rendered = msg;
+  Object.keys(exemplo).forEach(function(k) { rendered = rendered.replace(new RegExp('{'+k+'}','g'), exemplo[k]); });
+  preview.textContent = rendered || 'Preview aparece aqui...';
+};
+
+window.renderHistoricoWA = async function() {
+  var hist = await dbGet('waHistorico') || [];
+  var tbody = document.getElementById('waHistoricoBody');
+  if (!tbody) return;
+  if (!hist.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--muted2)">Nenhuma mensagem enviada</td></tr>'; return; }
+  tbody.innerHTML = [...hist].reverse().slice(0,50).map(function(h) {
+    return '<tr><td style="font-size:11px;color:var(--muted2)">'+(h.ts?new Date(h.ts).toLocaleString('pt-BR'):'—')+'</td>'
+      +'<td>'+(h.cliente||'—')+'</td><td>'+(h.telefone||'—')+'</td>'
+      +'<td>'+(h.template||'—')+'</td><td>'+(h.via||'—')+'</td>'
+      +'<td>'+(h.operador||'—')+'</td>'
+      +'<td><button class="btn btn-sm btn-ghost" onclick="reenviarWA(\''+h.telefone+'\',\''+encodeURIComponent(h.mensagem||'')+'\')">↺</button></td></tr>';
+  }).join('');
+};
+
+window.reenviarWA = function(tel, msgEnc) {
+  var msg = decodeURIComponent(msgEnc);
+  var num = tel.replace(/\D/g,'');
+  window.open('https://wa.me/55'+num+'?text='+encodeURIComponent(msg), '_blank');
+};
+
+window.renderAutomacoesWA = async function() {
+  var cfg = await dbGet('waAutomacoes') || {};
+  var togIds = ['togConfirmacao','togLembrete','togConclusao','togPosAtend','togChecklist','togCancelado'];
+  togIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.className = 'toggle' + (cfg[id] ? ' on' : '');
+  });
+  var statEl = document.getElementById('waAutoStatus');
+  if (statEl) statEl.textContent = window._evoConectado ? '🟢 API conectada' : '🔴 API não configurada';
+};
+
+window.salvarAutomacoesWA = async function() {
+  var togIds = ['togConfirmacao','togLembrete','togConclusao','togPosAtend','togChecklist','togCancelado'];
+  var cfg = {};
+  togIds.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) cfg[id] = el.classList.contains('on');
+  });
+  // Salvar config de delay, pin, etc
+  var delay = (document.getElementById('waDelay')||{}).value;
+  var telTeste = (document.getElementById('waTelTeste')||{}).value;
+  var horIni = (document.getElementById('waHorIni')||{}).value;
+  var horFim = (document.getElementById('waHorFim')||{}).value;
+  if (delay) cfg.delay = parseInt(delay);
+  if (telTeste) cfg.telTeste = telTeste;
+  if (horIni) cfg.horIni = horIni;
+  if (horFim) cfg.horFim = horFim;
+  await dbSet('waAutomacoes', cfg);
+  toast('Configurações de automação salvas!', 'ok');
+};
+
+window.renderLoteWA = async function() {
+  var sel = document.getElementById('waLoteTemplate');
+  if (sel) {
+    var templates = await dbGet('waTemplates') || [];
+    sel.innerHTML = '<option value="">Selecione...</option>' + templates.map(function(t,i){ return '<option value="'+i+'">'+t.nome+'</option>'; }).join('');
+  }
+};
+
+window.filtrarDestinatariosWA = async function() {
+  var filtro = (document.getElementById('waLoteFiltro')||{}).value || '';
+  var clientes = await dbGet('clientes') || [];
+  var agendamentos = await dbGet('agendamentos') || [];
+  var hoje = today();
+  var amanha = new Date(); amanha.setDate(amanha.getDate()+1);
+  var amanhaStr = amanha.toISOString().split('T')[0];
+  var lista = [];
+  if (filtro === 'todos') {
+    lista = clientes.filter(function(c){ return c.telefone; });
+  } else if (filtro === 'inativos') {
+    var ultimoAg = {};
+    agendamentos.forEach(function(a){ if (!ultimoAg[a.clienteId]||a.data>ultimoAg[a.clienteId]) ultimoAg[a.clienteId]=a.data; });
+    var corte = new Date(); corte.setDate(corte.getDate()-90); var corteStr=corte.toISOString().split('T')[0];
+    lista = clientes.filter(function(c){ return c.telefone&&(!ultimoAg[c.id]||ultimoAg[c.id]<corteStr); });
+  } else if (filtro === 'amanha') {
+    var ids = agendamentos.filter(function(a){ return a.data===amanhaStr&&a.status!=='Cancelado'; }).map(function(a){ return a.clienteId; });
+    lista = clientes.filter(function(c){ return c.telefone&&ids.includes(c.id); });
+  } else if (filtro === 'aniversario') {
+    var mesAtual = new Date().getMonth()+1;
+    lista = clientes.filter(function(c){ if(!c.telefone||!c.dataNasc)return false; var m=parseInt((c.dataNasc||'').split('-')[1]); return m===mesAtual; });
+  } else if (filtro === 'pontos') {
+    var fid = await dbGet('fidelidade') || [];
+    var temPontos = {};
+    fid.forEach(function(f){ if(f.pontos>0)temPontos[f.clienteId]=true; });
+    lista = clientes.filter(function(c){ return c.telefone&&temPontos[c.id]; });
+  }
+  var cont = document.getElementById('waLoteDestinatarios');
+  if (cont) {
+    cont.innerHTML = lista.length ? lista.map(function(c){ return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">'+c.nome+' — '+(c.telefone||'—')+'</div>'; }).join('') : '<div style="color:var(--muted2);padding:10px">Nenhum destinatário para este filtro</div>';
+  }
+  window._loteDestinatarios = lista;
+};
+
+window.iniciarEnvioLote = async function() {
+  var idx = (document.getElementById('waLoteTemplate')||{}).value;
+  if (idx === '' || idx === undefined) return toast('Selecione um template!', 'err');
+  var lista = window._loteDestinatarios || [];
+  if (!lista.length) return toast('Selecione um filtro e aguarde os destinatários!', 'err');
+  var templates = await dbGet('waTemplates') || [];
+  var tpl = templates[parseInt(idx)];
+  if (!tpl) return toast('Template inválido!', 'err');
+  if (!confirm('Enviar mensagem para '+lista.length+' clientes?')) return;
+  lista.forEach(function(c, i) {
+    setTimeout(function() {
+      var msg = (tpl.mensagem||'').replace(/{nome}/g,c.nome||'').replace(/{telefone}/g,c.telefone||'').replace(/{empresa}/g,'Clean Car');
+      var num = (c.telefone||'').replace(/\D/g,'');
+      window.open('https://wa.me/55'+num+'?text='+encodeURIComponent(msg), '_blank');
+    }, i * 1500);
+  });
+  toast('Abrindo WhatsApp para '+lista.length+' clientes...', 'info');
+};
+
+window.buscarCliWA = async function() {
+  var q = ((document.getElementById('waBuscaCli')||{}).value||'').toLowerCase();
+  var res = document.getElementById('waCliResultados');
+  if (!res) return;
+  if (!q || q.length < 2) { res.innerHTML = ''; return; }
+  var clientes = await dbGet('clientes') || [];
+  var hits = clientes.filter(function(c){ return (c.nome||'').toLowerCase().includes(q)||(c.cpf||'').includes(q)||(c.telefone||'').replace(/\D/g,'').includes(q.replace(/\D/g,'')); });
+  res.innerHTML = hits.slice(0,6).map(function(c){
+    return '<div onclick="selecionarCliWA('+JSON.stringify(c).replace(/"/g,'&quot;')+')" style="padding:8px 12px;cursor:pointer;border-radius:8px;border:1px solid var(--border);margin-bottom:4px;background:var(--surface2)" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      +'<div style="font-size:13px;font-weight:500">'+c.nome+'</div>'
+      +'<div style="font-size:11px;color:var(--muted2)">'+(c.telefone||'Sem telefone')+'</div></div>';
+  }).join('') || '<div style="padding:10px;color:var(--muted2)">Nenhum cliente encontrado</div>';
+};
+
+window._waCliSelecionado = null;
+window.selecionarCliWA = async function(c) {
+  window._waCliSelecionado = c;
+  var res = document.getElementById('waCliResultados');
+  if (res) res.innerHTML = '';
+  var inp = document.getElementById('waBuscaCli');
+  if (inp) inp.value = c.nome;
+  var info = document.getElementById('waCliInfo');
+  if (info) {
+    info.innerHTML = '<div style="padding:10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">'
+      +'<div style="font-weight:600">'+c.nome+'</div>'
+      +'<div style="font-size:12px;color:var(--muted2)">'+(c.telefone||'Sem telefone')+'</div></div>';
+  }
+  // Carregar templates no select
+  var tplSel = document.getElementById('waTplSelect');
+  if (tplSel) {
+    var templates = await dbGet('waTemplates') || [];
+    tplSel.innerHTML = '<option value="">Selecione um template...</option>' + templates.map(function(t,i){ return '<option value="'+i+'">'+t.nome+'</option>'; }).join('');
+  }
+};
+
+window.selecionarTemplateWA = async function() {
+  var idx = (document.getElementById('waTplSelect')||{}).value;
+  if (idx === '') return;
+  var templates = await dbGet('waTemplates') || [];
+  var tpl = templates[parseInt(idx)];
+  if (!tpl || !window._waCliSelecionado) return;
+  var c = window._waCliSelecionado;
+  var agendamentos = await dbGet('agendamentos') || [];
+  var ultimoAg = agendamentos.filter(function(a){ return a.clienteId===c.id; }).pop() || {};
+  var msg = (tpl.mensagem||'')
+    .replace(/{nome}/g, c.nome||'')
+    .replace(/{telefone}/g, c.telefone||'')
+    .replace(/{data}/g, ultimoAg.data||'')
+    .replace(/{hora}/g, ultimoAg.horario||'')
+    .replace(/{servico}/g, ultimoAg.servico||'')
+    .replace(/{valor}/g, fmt(ultimoAg.valorFinal||ultimoAg.valor||0))
+    .replace(/{veiculo}/g, ultimoAg.veiculo||'')
+    .replace(/{placa}/g, ultimoAg.placa||'')
+    .replace(/{empresa}/g, 'Clean Car');
+  var prev = document.getElementById('waMsgFinal');
+  if (prev) prev.value = msg;
+  var prevBox = document.getElementById('waMsgPreviewBox');
+  if (prevBox) prevBox.textContent = msg;
+};
+
+window.enviarMsgWA = async function() {
+  var c = window._waCliSelecionado;
+  if (!c) return toast('Selecione um cliente!', 'err');
+  var msg = (document.getElementById('waMsgFinal')||{}).value || '';
+  if (!msg) return toast('Selecione um template!', 'err');
+  var num = (c.telefone||'').replace(/\D/g,'');
+  if (!num) return toast('Cliente sem telefone!', 'err');
+  // Tentar via Evolution API
+  if (window._evoConectado && window._evoConfig && window._evoConfig.url) {
+    try {
+      var resp = await fetch(window._evoConfig.url+'/message/sendText/'+window._evoConfig.instance, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':window._evoConfig.key},
+        body: JSON.stringify({number: (window._evoConfig.ddd||'55')+num, text: msg})
+      });
+      if (resp.ok) {
+        await registrarHistoricoWA(c, msg, 'API');
+        return toast('Mensagem enviada via API!', 'ok');
+      }
+    } catch(e) {}
+  }
+  // Fallback: WhatsApp Web
+  window.open('https://wa.me/55'+num+'?text='+encodeURIComponent(msg), '_blank');
+  await registrarHistoricoWA(c, msg, 'WhatsApp Web');
+};
+
+window.copiarMsgWA = function() {
+  var msg = (document.getElementById('waMsgFinal')||{}).value || '';
+  if (!msg) return toast('Nenhuma mensagem para copiar!', 'warn');
+  navigator.clipboard.writeText(msg).then(function(){ toast('Mensagem copiada!', 'ok'); }).catch(function(){ toast('Erro ao copiar', 'err'); });
+};
+
+window.abrirWAWeb = function() {
+  window.open('https://web.whatsapp.com', '_blank');
+};
+
+window.registrarHistoricoWA = async function(c, mensagem, via) {
+  try {
+    var hist = await dbGet('waHistorico') || [];
+    hist.push({ ts: new Date().toISOString(), cliente: c.nome, telefone: c.telefone, template: 'Manual', mensagem: mensagem, via: via, operador: window._currentAuthUser ? window._currentAuthUser.email : '—' });
+    if (hist.length > 200) hist = hist.slice(-200);
+    await dbSet('waHistorico', hist);
+  } catch(e) {}
+};
 
 </script>
 </body>
