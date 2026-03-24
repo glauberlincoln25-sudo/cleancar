@@ -2739,7 +2739,7 @@ function goTo(page) {
   document.querySelectorAll('.ni').forEach(n => { if((n.getAttribute('onclick')||'').includes("'"+page+"'")) n.classList.add('active'); });
   const map = {
     dashboard:renderDash, banco:renderBanco, agenda:renderAgenda,
-    servicos:renderServicos, fidelidade:renderFid, financeiro:renderFin,
+    servicos:renderServicos, fidelidade:renderFid, financeiro:renderFin,'agenda-semana':renderAgendaSemana,
     estoque:renderEst, checklist:renderChecklist, relatorios:renderRelatorios,
     caixa:renderCaixa, admin:renderAdmin, fichatecnica:renderFichaTecnica,
     historico:()=>{}, // renderizado por abrirHistoricoCliente
@@ -2811,25 +2811,21 @@ async function initApp() {
   renderDash();
   verificarCaixaAberto();
   iniciarPresenca();
-  carregarConfigEvo().then(()=>{
-    // Testar conexão automaticamente após carregar config
-    setTimeout(async()=>{
-      if(_evoConfig?.url){
-        await testarConexaoEvo();
-        if(!_evoConectado){
-          // Tentar criar a instância automaticamente
-          try{
-            await fetch(`${_evoConfig.url}/instance/create`,{
-              method:'POST',
-              headers:{'apikey':_evoConfig.key,'Content-Type':'application/json'},
-              body:JSON.stringify({instanceName:_evoConfig.instance,qrcode:true}),
-              signal:AbortSignal.timeout(8000)
-            });
-          }catch(e){}
-        }
+  // Carregar configuração da Evolution API
+  (async function(){
+    try {
+      const evoCfg = await dbGet('evolutionConfig');
+      if(evoCfg && evoCfg.url) {
+        window._evoConfig = evoCfg;
+        // Sincronizar campos do painel Admin
+        const set = function(id,v){ const el=document.getElementById(id); if(el)el.value=v||''; };
+        set('adm_evo_url', evoCfg.url);
+        set('adm_evo_key', evoCfg.key);
+        set('adm_evo_instance', evoCfg.instance||'cleancar');
+        set('adm_evo_ddd', evoCfg.ddd||'55');
       }
-    }, 2500);
-  });
+    } catch(e) { console.warn('Evo config:', e); }
+  })();
   verificarSessaoAtiva();
   iniciarPresencaRealtime();
   carregarAparencia();
@@ -5993,6 +5989,145 @@ window.zerarTodosDados = async function() {
   toast('✅ Todos os dados foram zerados!', 'ok');
   setTimeout(function() { location.reload(); }, 1500);
 };
+
+
+// ══════════════════════════════════════════════════
+// CORREÇÕES DE ESTABILIDADE E FUNCIONALIDADES
+// ══════════════════════════════════════════════════
+
+// Alias para funções inexistentes (backward compat)
+if (typeof carregarConfigEvo === 'undefined') {
+  window.carregarConfigEvo = async function() {
+    try {
+      var cfg = await dbGet('evolutionConfig');
+      if (cfg) {
+        window._evoConfig = cfg;
+        var set = function(id,v){ var el=document.getElementById(id); if(el)el.value=v||''; };
+        set('adm_evo_url', cfg.url);
+        set('adm_evo_key', cfg.key);
+        set('adm_evo_instance', cfg.instance||'cleancar');
+        set('adm_evo_ddd', cfg.ddd||'55');
+      }
+    } catch(e) {}
+    return Promise.resolve();
+  };
+}
+
+if (typeof testarConexaoEvo === 'undefined') {
+  window.testarConexaoEvo = async function() {
+    if (!window._evoConfig || !window._evoConfig.url) return false;
+    try {
+      var res = await fetch(window._evoConfig.url + '/instance/fetchInstances', {
+        headers: {'apikey': window._evoConfig.key},
+        signal: AbortSignal.timeout(5000)
+      });
+      window._evoConectado = res.ok;
+      return res.ok;
+    } catch(e) { window._evoConectado = false; return false; }
+  };
+}
+
+if (typeof testarConexaoEvoAdmin === 'undefined') {
+  window.testarConexaoEvoAdmin = async function() {
+    toast('Testando conexão...', 'info');
+    var ok = await testarConexaoEvo();
+    toast(ok ? '✅ Evolution API conectada!' : '❌ Falha na conexão — verifique URL e chave', ok ? 'ok' : 'err');
+    var dot = document.getElementById('evoDot');
+    if (dot) { dot.style.color = ok ? 'var(--green)' : 'var(--red)'; dot.textContent = ok ? '🟢' : '🔴'; }
+  };
+}
+
+// parseMoeda — converte "R$ 1.234,56" → 1234.56
+window.parseMoeda = function(str) {
+  if (!str) return 0;
+  if (typeof str === 'number') return str;
+  return parseFloat(String(str).replace(/[R$\s.]/g,'').replace(',','.')) || 0;
+};
+
+// Máscara CPF melhorada
+window.mCPF = function(el) {
+  var x = el.value.replace(/\D/g,'').slice(0,11);
+  if (x.length <= 3) el.value = x;
+  else if (x.length <= 6) el.value = x.slice(0,3)+'.'+x.slice(3);
+  else if (x.length <= 9) el.value = x.slice(0,3)+'.'+x.slice(3,6)+'.'+x.slice(6);
+  else el.value = x.slice(0,3)+'.'+x.slice(3,6)+'.'+x.slice(6,9)+'-'+x.slice(9);
+};
+
+// Máscara Telefone melhorada
+window.mTel = function(el) {
+  var x = el.value.replace(/\D/g,'').slice(0,11);
+  if (x.length <= 2) el.value = x.length ? '('+x : x;
+  else if (x.length <= 6) el.value = '('+x.slice(0,2)+') '+x.slice(2);
+  else if (x.length <= 10) el.value = '('+x.slice(0,2)+') '+x.slice(2,6)+'-'+x.slice(6);
+  else el.value = '('+x.slice(0,2)+') '+x.slice(2,7)+'-'+x.slice(7);
+};
+
+// Máscara CNPJ
+window.mCNPJ = function(el) {
+  var x = el.value.replace(/\D/g,'').slice(0,14);
+  if (x.length <= 2) el.value = x;
+  else if (x.length <= 5) el.value = x.slice(0,2)+'.'+x.slice(2);
+  else if (x.length <= 8) el.value = x.slice(0,2)+'.'+x.slice(2,5)+'.'+x.slice(5);
+  else if (x.length <= 12) el.value = x.slice(0,2)+'.'+x.slice(2,5)+'.'+x.slice(5,8)+'/'+x.slice(8);
+  else el.value = x.slice(0,2)+'.'+x.slice(2,5)+'.'+x.slice(5,8)+'/'+x.slice(8,12)+'-'+x.slice(12);
+};
+
+// Validação CPF
+window.validarCPF = function(cpf) {
+  cpf = cpf.replace(/\D/g,'');
+  if (cpf.length !== 11 || /^(\d)+$/.test(cpf)) return false;
+  var sum = 0;
+  for (var i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10-i);
+  var r = (sum * 10) % 11;
+  if (r === 10 || r === 11) r = 0;
+  if (r !== parseInt(cpf[9])) return false;
+  sum = 0;
+  for (var i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11-i);
+  r = (sum * 10) % 11;
+  if (r === 10 || r === 11) r = 0;
+  return r === parseInt(cpf[10]);
+};
+
+// Refresh de totais — recalcula ao adicionar/remover itens
+window.refreshTotais = async function() {
+  var activePage = (document.querySelector('.page.active')||{}).id || '';
+  if (activePage === 'page-dashboard') await renderDash();
+  if (activePage === 'page-financeiro') await renderFin();
+  if (activePage === 'page-caixa')      await renderCaixa();
+  if (activePage === 'page-relatorios') await renderRelatorios();
+};
+
+// Compatibilidade: garantir que _evoConfig existe
+if (typeof window._evoConfig === 'undefined') window._evoConfig = null;
+if (typeof window._evoConectado === 'undefined') window._evoConectado = false;
+
+// Garantir que aplicarPermissoes seja chamado com segurança
+var _origInitApp = typeof initApp === 'function' ? initApp : null;
+if (_origInitApp) {
+  initApp = async function() {
+    try {
+      await _origInitApp();
+    } catch(e) {
+      console.error('initApp error:', e);
+      // Mesmo com erro, tentar renderizar o dashboard
+      try { await renderDash(); } catch(e2) {}
+    }
+    // Aplicar permissões após init
+    try {
+      if (window._userRole && typeof aplicarPermissoes === 'function') {
+        aplicarPermissoes(window._userRole);
+      }
+    } catch(e) {}
+  };
+}
+
+// Adicionar CNPJ mask ao campo
+document.addEventListener('DOMContentLoaded', function() {
+  var cnpjEl = document.getElementById('c_cnpj');
+  if (cnpjEl && !cnpjEl.getAttribute('oninput')) {
+    cnpjEl.setAttribute('oninput', 'mCNPJ(this)');
+  }
+});
 
 </script>
 </body>
